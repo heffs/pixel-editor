@@ -1,0 +1,32 @@
+.canvas-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #202020;
+    overflow: hidden;
+}
+
+.draw-canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.crt-canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.interface-canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+}
