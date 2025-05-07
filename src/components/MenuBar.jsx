@@ -47,6 +47,15 @@ const MenuBar = (props) => {
                 <div className="dropdown-content">
                     <button>Zoom In</button>
                     <button>Zoom Out</button>
+                    <button>Reset Zoom</button>
+                </div>
+            </MenuItem>
+            <MenuItem title="Shader">
+                <div className="dropdown-content">
+                    <button>Scale Up</button>
+                    <button>Scale Down</button>
+                    <button>Shadowmask CRT Shader v0.1</button>
+                    <button>Shadowmask CRT Shader v0.2</button>
                 </div>
             </MenuItem>
         </div>
