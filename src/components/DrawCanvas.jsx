@@ -11,39 +11,86 @@ import { rgbaToUint32, hexToUint32 } from "../utils/colorMath";
 // canvasZoom
 // crtEnabled
 // gridEnabled
+// currentShader
 const DrawCanvas = (props) => {
     const canvasRef = useRef(null);
     const crtCanvasRef = useRef(null);
     const interfaceCanvasRef = useRef(null);
 
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const baseCanvasWidth = props.pixelartWidth * 4; // Fixed for base canvas.
+    let windowWidth = window.innerWidth;
+    let windowHeight = window.innerHeight;
+    const baseCanvasWidth = props.pixelartWidth * 4;
     const baseCanvasHeight = props.pixelartHeight * 4;
     const crtCanvasWidth = props.pixelartWidth * props.crtScale; // Variable for CRT canvas
     const crtCanvasHeight = props.pixelartHeight * props.crtScale; // Determines CRT resolution
     const interfaceCanvasWidth = props.pixelartWidth * 16;
     const interfaceCanvasHeight = props.pixelartHeight * 16;
-    const containerWidth = baseCanvasWidth * 4 * 16;
-    const containerHeight = baseCanvasHeight * 4 * 16;
-
-    console.log(`baseCanvasWidth: ${baseCanvasWidth}, baseCanvasHeight: ${baseCanvasHeight}`);
+    let containerWidth = baseCanvasWidth * 4 * 16;
+    let containerHeight = baseCanvasHeight * 4 * 16;
 
     const [pixelartData, setPixelartData] = useState([]);
     const [crtShader, setCrtShader] = useState(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-    const [canvasTranslate, setCanvasTranslate] = useState({ x: (windowWidth - containerWidth) / 2, y: (windowHeight - containerHeight) / 2 });
+    const [canvasTranslate, setCanvasTranslate] = useState({
+        x: (windowWidth - containerWidth) / 2,
+        y: (windowHeight - containerHeight) / 2,
+    });
     const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
 
-    // console.log(`Tool: ${props.currentTool}`);
-    // console.log(`Color: ${props.currentColour}`);
 
-    // Setup the CRT shader and canvas
-    // Effect dependencies: pixelartWidth, pixelartHeight
+    // When pixelartWidth or pixelartHeight changes, i.e. when there is a new canvas, initialise the canvases and data
     useEffect(() => {
-        // Initialise pixelart data
+        const newPixelartData = new Uint32Array(
+            props.pixelartWidth * props.pixelartHeight
+        );
+        newPixelartData.fill(0xff000000);
+
+        setPixelartData(newPixelartData);
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
+        canvas.width = baseCanvasWidth;
+        canvas.height = baseCanvasHeight;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const crtCanvas = crtCanvasRef.current;
+        crtCanvas.width = crtCanvasWidth;
+        crtCanvas.height = crtCanvasHeight;
+
+        containerWidth = baseCanvasWidth * 4 * 16;
+        containerHeight = baseCanvasHeight * 4 * 16;
+
+        setCanvasTranslate({
+            x: (window.innerWidth - containerWidth) / 2,
+            y: (window.innerHeight - containerHeight) / 2,
+        });
+    
+    }, [props.pixelartWidth, props.pixelartHeight]);
+
+
+
+    // When the current shader name changes, either create the shader if it does not exist, or change the shader if it does
+    useEffect(() => {
+        if (props.currentShader === null) {
+            return;
+        }
+        if (!crtShader) {
+            const shader = new CRTShader(
+                crtCanvasRef.current,
+                props.currentShader
+            );
+            setCrtShader(shader);
+        } else {
+            crtShader.changeShader(props.currentShader);
+        }
+    }, [props.currentShader]);
+
+
+    // When crtShader changes, i.e., stops being null, setup the CRT canvas
+    useEffect(() => {
         const newPixelartData = new Uint32Array(
             props.pixelartWidth * props.pixelartHeight
         );
@@ -59,22 +106,13 @@ const DrawCanvas = (props) => {
         canvas.height = baseCanvasHeight;
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // CRT canvas
-        const crtCanvas = crtCanvasRef.current;
-        const shader = new CRTShader(crtCanvas);
-        setCrtShader(shader);
-    }, [props.pixelartWidth, props.pixelartHeight]);
+    }, [crtShader]);
 
 
     // Reset the CRT canvas viewport when the CRT scale changes
     // Effect dependencies: crtScale
     useEffect(() => {
         if (crtCanvasRef.current) {
-            // crtCanvasRef.current.width = crtCanvasWidth;
-            // crtCanvasRef.current.height = crtCanvasHeight;
-            // const crtCtx = crtCanvasRef.current.getContext("webgl2");
-            // crtCtx.viewport(0, 0, crtCanvasWidth, crtCanvasHeight);
             render();
         }
     }, [props.crtScale]);
@@ -84,7 +122,7 @@ const DrawCanvas = (props) => {
     // Effect dependencies: pixelartData
     useEffect(() => {
         render();
-    }, [pixelartData]);
+    }, [pixelartData, props.currentShader]);
 
 
     // Render the interface canvas
@@ -105,7 +143,7 @@ const DrawCanvas = (props) => {
             ctx.strokeStyle = "#ffffff90";
             ctx.lineWidth = 1;
             ctx.setLineDash([1, 2]);
-            
+
             // Draw vertical lines
             for (let x = 1; x < props.pixelartWidth; x++) {
                 ctx.beginPath();
@@ -122,15 +160,12 @@ const DrawCanvas = (props) => {
                 ctx.stroke();
             }
         }
-    }
-
+    };
 
     const render = () => {
         if (!pixelartData || !crtShader) {
             return;
         }
-
-        console.log(`isDragging: ${isDragging}, isDrawing: ${isDrawing}`);
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
@@ -140,8 +175,8 @@ const DrawCanvas = (props) => {
         // Clear canvas
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         // Draw imagedata to a temporary canvas, pixelartwidth x pixelartheight
-        // const imagedata = new ImageData(new Uint8ClampedArray(pixelartData.buffer), pixelartData, props.pixelartWidth, props.pixelartHeight);
         const imagedata = new ImageData(
             new Uint8ClampedArray(pixelartData.buffer),
             props.pixelartWidth,
@@ -198,7 +233,6 @@ const DrawCanvas = (props) => {
             return;
         }
 
-        const canvas = canvasRef.current;
         const pos = getMousePos(e);
         const pixel = getPixelartPos(pos);
 
@@ -222,7 +256,7 @@ const DrawCanvas = (props) => {
             setStartPos(pixelartPos);
         } else if (e.button === 1) {
             setIsDragging(true);
-            setDragStartPos({x: e.clientX, y: e.clientY});
+            setDragStartPos({ x: e.clientX, y: e.clientY });
         }
     };
 
@@ -250,9 +284,8 @@ const DrawCanvas = (props) => {
     const handleContainerMouseDown = (e) => {
         if (e.button === 1) {
             setIsDragging(true);
-            setDragStartPos({x: e.clientX, y: e.clientY});
+            setDragStartPos({ x: e.clientX, y: e.clientY });
         }
-        console.log(`handleContainerMouseDown, isDragging: ${isDragging}, isDrawing: ${isDrawing}`);
     };
 
     const handleContainerMouseMove = (e) => {
@@ -261,24 +294,24 @@ const DrawCanvas = (props) => {
                 x: canvasTranslate.x + (e.clientX - dragStartPos.x),
                 y: canvasTranslate.y + (e.clientY - dragStartPos.y),
             });
-            setDragStartPos({x: e.clientX, y: e.clientY});
+            setDragStartPos({ x: e.clientX, y: e.clientY });
         }
     };
 
     const handleContainerMouseUp = () => {
         setIsDragging(false);
-        console.log(`handleContainerMouseUp, isDragging: ${isDragging}, isDrawing: ${isDrawing}`);
     };
 
     return (
-        <div className="canvas-container" 
+        <div
+            className="canvas-container"
             onMouseDown={handleContainerMouseDown}
             onMouseMove={handleContainerMouseMove}
             onMouseUp={handleContainerMouseUp}
-            style={{ 
+            style={{
                 width: `${containerWidth}px`,
                 height: `${containerHeight}px`,
-                transform: `translate(${canvasTranslate.x}px, ${canvasTranslate.y}px)` 
+                transform: `translate(${canvasTranslate.x}px, ${canvasTranslate.y}px)`,
             }}
         >
             <canvas
@@ -313,7 +346,9 @@ const DrawCanvas = (props) => {
                 style={{
                     width: `${interfaceCanvasWidth}px`,
                     height: `${interfaceCanvasHeight}px`,
-                    transform: `translate(-50%, -50%) scale(${props.canvasZoom / 4})`,
+                    transform: `translate(-50%, -50%) scale(${
+                        props.canvasZoom / 4
+                    })`,
                     pointerEvents: "none",
                 }}
             />

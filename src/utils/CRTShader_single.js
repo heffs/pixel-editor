@@ -1,26 +1,16 @@
-// To handle multiple shaders
-import SHADERS from "../assets/shaderSources";
+import { vertexShaderSource, fragmentShaderSource } from "../assets/shadersv2";
 
-export class CRTShaders {
-    constructor(canvas, shader) {
-        const shader = SHADERS.find((s) => s.name === shader);
-        if (!shader) {
-            throw new Error(`Shader ${shader} not found`);
-            return;
-        }
-        this.shader = shader;
+export class CRTShader {
+    constructor(canvas) {
         this.canvas = canvas;
         this.gl = canvas.getContext("webgl2");
+
         if (!this.gl) {
-            console.error("WebGL is not supported in this browser.");
+            console.error("WebGL 2 not supported");
+            return;
         }
 
-        this.setupShader();
-    }
-
-    setupShader() {
-        const { vertexShaderSource, fragmentShaderSource } = this.shader;
-
+        // Create shader program
         const vertexShader = this.createShader(
             this.gl.VERTEX_SHADER,
             vertexShaderSource
@@ -38,6 +28,16 @@ export class CRTShaders {
             this.program,
             "uResolution"
         );
+        // this.uTime = this.gl.getUniformLocation(this.program, "uTime");
+        // this.uCurvature = this.gl.getUniformLocation(
+        //     this.program,
+        //     "uCurvature"
+        // );
+        // this.uScanlines = this.gl.getUniformLocation(
+        //     this.program,
+        //     "uScanlines"
+        // );
+        // this.uVignette = this.gl.getUniformLocation(this.program, "uVignette");
 
         // Create buffers
         this.vbo = this.gl.createBuffer();
@@ -46,10 +46,26 @@ export class CRTShaders {
         // Create texture
         this.texture = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(
+            this.gl.TEXTURE_2D,
+            this.gl.TEXTURE_WRAP_S,
+            this.gl.CLAMP_TO_EDGE
+        );
+        this.gl.texParameteri(
+            this.gl.TEXTURE_2D,
+            this.gl.TEXTURE_WRAP_T,
+            this.gl.CLAMP_TO_EDGE
+        );
+        this.gl.texParameteri(
+            this.gl.TEXTURE_2D,
+            this.gl.TEXTURE_MIN_FILTER,
+            this.gl.NEAREST
+        );
+        this.gl.texParameteri(
+            this.gl.TEXTURE_2D,
+            this.gl.TEXTURE_MAG_FILTER,
+            this.gl.NEAREST
+        );
 
         // Set up vertex data
         const vertices = new Float32Array([
@@ -60,8 +76,19 @@ export class CRTShaders {
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW);
+        this.gl.bufferData(
+            this.gl.ELEMENT_ARRAY_BUFFER,
+            indices,
+            this.gl.STATIC_DRAW
+        );
+
+        // Animation variables
+        this.startTime = Date.now();
+        this.curvature = 0.1;
+        this.scanlines = 0.5;
+        this.vignette = 0.5;
     }
 
     createShader(type, source) {
@@ -93,21 +120,6 @@ export class CRTShaders {
         return program;
     }
 
-    changeShader(shader) {
-        if (this.shader.name === shader) {
-            console.log("Same shader");
-            return;
-        }
-        const shader = SHADERS.find((s) => s.name === shader);
-        if (!shader) {
-            throw new Error(`Shader ${shader} not found`);
-            return;
-        }
-        this.shader = shader;
-        this.gl.deleteProgram(this.program);
-        this.setupShader();
-    }
-
     render(sourceCanvas, shaderScale) {
         const gl = this.gl;
 
@@ -137,6 +149,10 @@ export class CRTShaders {
 
         // Set uniforms
         gl.uniform2f(this.uResolution, this.canvas.width, this.canvas.height);
+        // gl.uniform1f(this.uTime, (Date.now() - this.startTime) / 1000);
+        // gl.uniform1f(this.uCurvature, this.curvature);
+        // gl.uniform1f(this.uScanlines, this.scanlines);
+        // gl.uniform1f(this.uVignette, this.vignette);
 
         // Set up attributes
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);

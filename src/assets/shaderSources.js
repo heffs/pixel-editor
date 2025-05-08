@@ -1,5 +1,39 @@
 const SHADERS = [
     {
+        name: "Passthrough",
+        vertexShaderSource: `#version 300 es
+    in vec3 aPosition;
+    in vec2 aTexCoord;
+    
+    out vec2 vTexCoord;
+    
+    void main() {
+        vTexCoord = aTexCoord;
+        gl_Position = vec4(aPosition, 1.0);
+    }`,
+        fragmentShaderSource: `#version 300 es
+    precision mediump float;
+    
+    in vec2 vTexCoord;
+    uniform sampler2D uTexture;
+    uniform vec2 uResolution;
+    
+    out vec4 fragColor;
+    
+    void main() {
+        vec2 uv = vTexCoord;
+        uv.y = 1.0 - uv.y;
+        
+        vec3 colour = texture(uTexture, uv).rgb;
+        
+        fragColor = vec4(colour, 1.0);
+        
+    }
+    
+    
+    `,
+    },
+    {
         name: "Shadow Mask CRT v0.2",
         vertexShaderSource: `#version 300 es
 in vec3 aPosition;
@@ -134,7 +168,7 @@ void main() {
 `,
     },
     {
-        name: "Shadow Mask CRT v0.1",
+        name: "Shadow Mask CRT v0.11",
         vertexShaderSource: `#version 300 es
 in vec3 aPosition;
 in vec2 aTexCoord;
@@ -261,4 +295,4 @@ void main() {
     },
 ];
 
-export default SHADERS;
+export { SHADERS };

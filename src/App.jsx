@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { use, useState, useEffect } from "react";
 import "./App.css";
 import DrawCanvas from "./components/DrawCanvas.jsx";
 import Toolbox from "./components/Toolbox.jsx";
 import ColourPicker from "./components/ColourPicker.jsx";
 import MenuBar from "./components/MenuBar.jsx";
 import NewFileDialog from "./components/NewFileDialog.jsx";
+import { SHADERS } from "./assets/shaderSources";
 
 function App() {
     const [currentTool, setCurrentTool] = useState("pencil");
@@ -18,6 +19,13 @@ function App() {
     const [crtEnabled, setCrtEnabled] = useState(true);
     const [gridEnabled, setGridEnabled] = useState(false);
     const [isNewFileDialogOpen, setIsNewFileDialogOpen] = useState(false);
+    const [shaders, setShaders] = useState([]);
+    const [currentShader, setCurrentShader] = useState(null);
+
+    useEffect(() => {
+        setShaders(SHADERS);
+        setCurrentShader(SHADERS[0].name);
+    }, []);
 
     const handleScroll = (e) => {
         const delta = e.deltaY;
@@ -55,6 +63,11 @@ function App() {
         console.log("Exit");
     };
 
+    const handleShaderChange = (shader) => {
+        console.log("Change shader to", shader);
+        setCurrentShader(shader);
+    };
+
     return (
         <div className="app" onWheel={handleScroll}>
             <div className="header-area">
@@ -64,6 +77,9 @@ function App() {
                     onSave={handleSave}
                     onSaveAs={handleSaveAs}
                     onExit={handleExit}
+                    onShaderChange={handleShaderChange}
+                    shaders={shaders.map((shader) => shader.name)}
+                    currentShader={currentShader}
                 />
                 <div className="options-bar">
                     <div className="brush-size">
@@ -83,7 +99,9 @@ function App() {
                             min="1"
                             max="16"
                             value={crtScale}
-                            onChange={(e) => setCrtScale(parseFloat(e.target.value))}
+                            onChange={(e) =>
+                                setCrtScale(parseFloat(e.target.value))
+                            }
                         />
                         <span>{crtScale}x</span>
                     </div>
@@ -95,7 +113,9 @@ function App() {
                             max="16"
                             step="0.25"
                             value={canvasZoom}
-                            onChange={(e) => setCanvasZoom(parseInt(e.target.value))}
+                            onChange={(e) =>
+                                setCanvasZoom(parseInt(e.target.value))
+                            }
                         />
                         <span>{canvasZoom}x</span>
                     </div>
@@ -135,6 +155,7 @@ function App() {
                     canvasZoom={canvasZoom}
                     crtEnabled={crtEnabled}
                     gridEnabled={gridEnabled}
+                    currentShader={currentShader}
                 />
             </div>
             <NewFileDialog

@@ -19,9 +19,10 @@ const MenuItem = (props) => {
     );
 };
 
-
 // Props:
 // onNew, onOpen, onSave, onSaveAs, onExit
+// shaders: an array of shader names
+// currentShader
 const MenuBar = (props) => {
     return (
         <div className="menu-bar">
@@ -54,8 +55,20 @@ const MenuBar = (props) => {
                 <div className="dropdown-content">
                     <button>Scale Up</button>
                     <button>Scale Down</button>
-                    <button>Shadowmask CRT Shader v0.1</button>
-                    <button>Shadowmask CRT Shader v0.2</button>
+                    <div className="menu-divider"></div>
+                    {props.shaders.map((shader) => (
+                        <button
+                            key={shader}
+                            onClick={() => props.onShaderChange(shader)}
+                            className={
+                                props.currentShader === shader
+                                    ? "active-shader"
+                                    : ""
+                            }
+                        >
+                            {shader}
+                        </button>
+                    ))}
                 </div>
             </MenuItem>
         </div>

@@ -1,16 +1,26 @@
-import { vertexShaderSource, fragmentShaderSource } from "../assets/shadersv2";
+// To handle multiple shaders
+import { SHADERS } from "../assets/shaderSources";
 
 export class CRTShader {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.gl = canvas.getContext("webgl2");
-
-        if (!this.gl) {
-            console.error("WebGL 2 not supported");
+    constructor(canvas, shaderName) {
+        const shader = SHADERS.find((s) => s.name === shaderName);
+        if (!shader) {
+            throw new Error(`Shader ${shader} not found`);
             return;
         }
+        this.shader = shader;
+        this.canvas = canvas;
+        this.gl = canvas.getContext("webgl2");
+        if (!this.gl) {
+            console.error("WebGL is not supported in this browser.");
+        }
 
-        // Create shader program
+        this.setupShader();
+    }
+
+    setupShader() {
+        const { vertexShaderSource, fragmentShaderSource } = this.shader;
+
         const vertexShader = this.createShader(
             this.gl.VERTEX_SHADER,
             vertexShaderSource
@@ -28,16 +38,6 @@ export class CRTShader {
             this.program,
             "uResolution"
         );
-        // this.uTime = this.gl.getUniformLocation(this.program, "uTime");
-        // this.uCurvature = this.gl.getUniformLocation(
-        //     this.program,
-        //     "uCurvature"
-        // );
-        // this.uScanlines = this.gl.getUniformLocation(
-        //     this.program,
-        //     "uScanlines"
-        // );
-        // this.uVignette = this.gl.getUniformLocation(this.program, "uVignette");
 
         // Create buffers
         this.vbo = this.gl.createBuffer();
@@ -76,19 +76,12 @@ export class CRTShader {
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
-
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.ibo);
         this.gl.bufferData(
             this.gl.ELEMENT_ARRAY_BUFFER,
             indices,
             this.gl.STATIC_DRAW
         );
-
-        // Animation variables
-        this.startTime = Date.now();
-        this.curvature = 0.1;
-        this.scanlines = 0.5;
-        this.vignette = 0.5;
     }
 
     createShader(type, source) {
@@ -120,16 +113,31 @@ export class CRTShader {
         return program;
     }
 
+    changeShader(shaderName) {
+        if (this.shader.name === shaderName) {
+            console.log("Same shader");
+            return;
+        }
+        const shader = SHADERS.find((s) => s.name === shaderName);
+        if (!shader) {
+            throw new Error(`Shader ${shader} not found`);
+            return;
+        }
+        this.shader = shader;
+        this.gl.deleteProgram(this.program);
+        this.setupShader();
+    }
+
     render(sourceCanvas, shaderScale) {
         const gl = this.gl;
 
         // Update canvas size if needed
         if (
-            this.canvas.width !== sourceCanvas.width * shaderScale / 4 ||
-            this.canvas.height !== sourceCanvas.height * shaderScale / 4
+            this.canvas.width !== (sourceCanvas.width * shaderScale) / 4 ||
+            this.canvas.height !== (sourceCanvas.height * shaderScale) / 4
         ) {
-            this.canvas.width = sourceCanvas.width * shaderScale / 4;
-            this.canvas.height = sourceCanvas.height * shaderScale / 4;
+            this.canvas.width = (sourceCanvas.width * shaderScale) / 4;
+            this.canvas.height = (sourceCanvas.height * shaderScale) / 4;
             gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         }
 
@@ -149,10 +157,6 @@ export class CRTShader {
 
         // Set uniforms
         gl.uniform2f(this.uResolution, this.canvas.width, this.canvas.height);
-        // gl.uniform1f(this.uTime, (Date.now() - this.startTime) / 1000);
-        // gl.uniform1f(this.uCurvature, this.curvature);
-        // gl.uniform1f(this.uScanlines, this.scanlines);
-        // gl.uniform1f(this.uVignette, this.vignette);
 
         // Set up attributes
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
