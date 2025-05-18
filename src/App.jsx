@@ -97,10 +97,10 @@ function App() {
                         <input
                             type="range"
                             min="1"
-                            max="16"
+                            max="32"
                             value={crtScale}
                             onChange={(e) =>
-                                setCrtScale(parseFloat(e.target.value))
+                                setCrtScale(parseInt(e.target.value))
                             }
                         />
                         <span>{crtScale}x</span>
@@ -114,7 +114,7 @@ function App() {
                             step="0.25"
                             value={canvasZoom}
                             onChange={(e) =>
-                                setCanvasZoom(parseInt(e.target.value))
+                                setCanvasZoom(parseFloat(e.target.value))
                             }
                         />
                         <span>{canvasZoom}x</span>

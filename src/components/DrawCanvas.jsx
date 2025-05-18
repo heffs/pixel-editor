@@ -12,6 +12,20 @@ import { rgbaToUint32, hexToUint32 } from "../utils/colorMath";
 // crtEnabled
 // gridEnabled
 // currentShader
+
+// Debounce function
+const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
 const DrawCanvas = (props) => {
     const canvasRef = useRef(null);
     const crtCanvasRef = useRef(null);
@@ -39,6 +53,11 @@ const DrawCanvas = (props) => {
     });
     const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
 
+    const debouncedRender = useRef(
+        debounce(() => {
+            render();
+        }, 33)
+    ).current;
 
     // When pixelartWidth or pixelartHeight changes, i.e. when there is a new canvas, initialise the canvases and data
     useEffect(() => {
@@ -67,10 +86,7 @@ const DrawCanvas = (props) => {
             x: (window.innerWidth - containerWidth) / 2,
             y: (window.innerHeight - containerHeight) / 2,
         });
-    
     }, [props.pixelartWidth, props.pixelartHeight]);
-
-
 
     // When the current shader name changes, either create the shader if it does not exist, or change the shader if it does
     useEffect(() => {
@@ -88,7 +104,6 @@ const DrawCanvas = (props) => {
         }
     }, [props.currentShader]);
 
-
     // When crtShader changes, i.e., stops being null, setup the CRT canvas
     useEffect(() => {
         const newPixelartData = new Uint32Array(
@@ -101,13 +116,12 @@ const DrawCanvas = (props) => {
         // Intialise canvases
         // Draw canvas
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
+        // const ctx = canvas.getContext("2d");
         canvas.width = baseCanvasWidth;
         canvas.height = baseCanvasHeight;
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ctx.fillStyle = "#000";
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
     }, [crtShader]);
-
 
     // Reset the CRT canvas viewport when the CRT scale changes
     // Effect dependencies: crtScale
@@ -117,20 +131,18 @@ const DrawCanvas = (props) => {
         }
     }, [props.crtScale]);
 
-
     // Render when pixelartData changes
     // Effect dependencies: pixelartData
     useEffect(() => {
         render();
+        // debouncedRender();
     }, [pixelartData, props.currentShader]);
-
 
     // Render the interface canvas
     // Effect dependencies: gridEnabled
     useEffect(() => {
         renderInterface();
     }, [props.gridEnabled]);
-
 
     const renderInterface = () => {
         const interfaceCanvas = interfaceCanvasRef.current;
@@ -173,25 +185,55 @@ const DrawCanvas = (props) => {
         const crtCtx = crtCanvasRef.current.getContext("webgl2");
 
         // Clear canvas
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ctx.fillStyle = "#000";
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Draw imagedata to a temporary canvas, pixelartwidth x pixelartheight
+        // const imagedata = new ImageData(
+        //     new Uint8ClampedArray(pixelartData.buffer),
+        //     props.pixelartWidth,
+        //     props.pixelartHeight
+        // );
+        // const tempCanvas = document.createElement("canvas");
+        // tempCanvas.width = props.pixelartWidth;
+        // tempCanvas.height = props.pixelartHeight;
+        // const tempCtx = tempCanvas.getContext("2d");
+        // tempCtx.putImageData(imagedata, 0, 0);
+
+        // // Draw scaled up temp canvas to draw canvas
+        // ctx.imageSmoothingEnabled = false;
+        // ctx.drawImage(
+        //     tempCanvas,
+        //     0,
+        //     0,
+        //     props.pixelartWidth * 4,
+        //     props.pixelartHeight * 4
+        // );
+
+                // Create ImageData directly from pixelartData
         const imagedata = new ImageData(
             new Uint8ClampedArray(pixelartData.buffer),
             props.pixelartWidth,
             props.pixelartHeight
         );
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = props.pixelartWidth;
-        tempCanvas.height = props.pixelartHeight;
-        const tempCtx = tempCanvas.getContext("2d");
-        tempCtx.putImageData(imagedata, 0, 0);
 
-        // Draw scaled up temp canvas to draw canvas
+        // Draw directly to the canvas without intermediate steps
         ctx.imageSmoothingEnabled = false;
+        ctx.putImageData(
+            imagedata,
+            0,
+            0,
+            0,
+            0,
+            props.pixelartWidth,
+            props.pixelartHeight
+        );
         ctx.drawImage(
-            tempCanvas,
+            canvas,
+            0,
+            0,
+            props.pixelartWidth,
+            props.pixelartHeight,
             0,
             0,
             props.pixelartWidth * 4,

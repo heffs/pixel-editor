@@ -87,6 +87,7 @@ export class CRTShader {
     createShader(type, source) {
         const shader = this.gl.createShader(type);
         this.gl.shaderSource(shader, source);
+        console.log(source);
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {

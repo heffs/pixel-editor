@@ -1,17 +1,4 @@
-// GLSL Shaders
-const vertexShaderSource = `#version 300 es
-in vec3 aPosition;
-in vec2 aTexCoord;
-
-out vec2 vTexCoord;
-
-void main() {
-    vTexCoord = aTexCoord;
-    gl_Position = vec4(aPosition, 1.0);
-}`;
-
-
-const fragmentShaderSource = `#version 300 es
+#version 300 es
 precision mediump float;
 
 in vec2 vTexCoord;
@@ -56,6 +43,7 @@ const ivec2[18] neighbourOffsets = ivec2[18](
     ivec2(5, 4), ivec2(6, 2), ivec2(4, 2)
 );
 
+
 vec3 getWeights(ivec2 redWeightCoord, ivec2 greenWeightCoord, ivec2 blueWeightCoord) {
     vec3 weights = vec3(0.0);
     if (redWeightCoord.x < 0 || redWeightCoord.x > 5 || redWeightCoord.y < 0 || redWeightCoord.y > 5) {
@@ -79,50 +67,52 @@ vec3 getWeights(ivec2 redWeightCoord, ivec2 greenWeightCoord, ivec2 blueWeightCo
     return weights;
 }
 
+vec3 meanSampleColour(vec2 sample_origin, float pixelSize) {
+    vec3 colour = vec3(0.0);
+    for (int y = 0; y < int(pixelSize); y++) {
+        for (int x = 0; x < int(pixelSize); x++) {
+            vec2 sample_uv = (sample_origin + vec2(x, y)) / uResolution;
+            colour += texture(uTexture, sample_uv).rgb;
+        }
+    }
+    return colour / (pixelSize * pixelSize);
+}
+
 void main() {
     vec2 uv = vTexCoord;
     uv.y = 1.0 - uv.y;
-
+    
     float pixelSize = 4.0;
     vec2 pixel = uv * uResolution;
-    vec2 subpixel = mod(pixel, pixelSize);
     float col = floor(pixel.x / pixelSize);
     float offset = mod(col, 2.0) * pixelSize * 0.5;
+    vec2 subpixel = mod(pixel, pixelSize);
     subpixel.y = mod(subpixel.y + offset, pixelSize);
+    vec2 sample_origin = pixel - subpixel;
 
-    vec2 sample_pixel = pixel;
-    sample_pixel.y = sample_pixel.y + offset;
-    vec2 sample_uv = floor(sample_pixel / pixelSize) * pixelSize + (pixelSize * 0.5);
-    sample_uv.y = sample_uv.y - offset;
-    sample_uv = sample_uv / uResolution;
+    vec3 meanPixelColour = meanSampleColour(sample_origin, pixelSize);
 
     int subpixelIndex = int(subpixel.x) + int(subpixel.y) * int(pixelSize);
-
-    vec4 colour = texture(uTexture, sample_uv);
-    vec3 subPixelColour = colour.rgb * weights[subpixelIndex];
+    vec3 subPixelColour = meanPixelColour * weights[subpixelIndex];
 
     vec3 finalColour = subPixelColour;
 
     // Add influence from neighbouring pixels
     for (int i = 0; i < 6; i++) {
-        vec2 neighbour_uv = sample_uv + neighbourPositions[i] * pixelSize / uResolution;
-        vec4 neighbour_colour = texture(uTexture, neighbour_uv);
+        vec2 neighbour_origin = sample_origin + neighbourPositions[i] * pixelSize;
+        vec3 neighbour_colour = meanSampleColour(neighbour_origin, pixelSize);
 
         ivec2 redWeightCoord = neighbourOffsets[i * 3] + ivec2(subpixel);
         ivec2 greenWeightCoord = neighbourOffsets[i * 3 + 1] + ivec2(subpixel);
         ivec2 blueWeightCoord = neighbourOffsets[i * 3 + 2] + ivec2(subpixel);
 
-        vec3 colourDiff = max(neighbour_colour.rgb - subPixelColour, vec3(0.0));
+        vec3 colourDiff = max(neighbour_colour - subPixelColour, vec3(0.0));
 
         vec3 colourWeights = getWeights(redWeightCoord, greenWeightCoord, blueWeightCoord);
 
         finalColour += colourDiff * colourWeights;
     }
-
+    
     fragColor = vec4(finalColour, 1.0);
-
+    
 }
-
-`;
-
-export { vertexShaderSource, fragmentShaderSource };
