@@ -158,6 +158,11 @@ const DrawCanvas = (props) => {
 
             // Draw vertical lines
             for (let x = 1; x < props.pixelartWidth; x++) {
+                if (x % 8 === 0) {
+                    ctx.strokeStyle = "#33ff33c0";
+                } else {
+                    ctx.strokeStyle = "#ffffff90";
+                }
                 ctx.beginPath();
                 ctx.moveTo(x * 16, 0);
                 ctx.lineTo(x * 16, props.pixelartHeight * 16);
@@ -166,6 +171,11 @@ const DrawCanvas = (props) => {
 
             // Draw horizontal lines
             for (let y = 1; y < props.pixelartHeight; y++) {
+                if (y % 8 === 0) {
+                    ctx.strokeStyle = "#33ff33c0";
+                } else {
+                    ctx.strokeStyle = "#ffffff90";
+                }
                 ctx.beginPath();
                 ctx.moveTo(0, y * 16);
                 ctx.lineTo(props.pixelartWidth * 16, y * 16);
