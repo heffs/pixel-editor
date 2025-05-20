@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useImperativeHandle } from "react";
 import { CRTShader } from "../utils/CRTShader";
 import "./DrawCanvas.css";
 import { rgbaToUint32, hexToUint32 } from "../utils/colorMath";
@@ -12,6 +12,7 @@ import { rgbaToUint32, hexToUint32 } from "../utils/colorMath";
 // crtEnabled
 // gridEnabled
 // currentShader
+// imagedataRef
 
 // Debounce function
 const debounce = (func, wait) => {
@@ -52,6 +53,14 @@ const DrawCanvas = (props) => {
         y: (windowHeight - containerHeight) / 2,
     });
     const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+
+    useImperativeHandle(props.imagedataRef, () => {
+        return {
+            getpixelartData: () => {
+                return pixelartData;
+            },
+        }
+    }, [pixelartData]);
 
     const debouncedRender = useRef(
         debounce(() => {

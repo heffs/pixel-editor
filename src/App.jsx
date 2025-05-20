@@ -1,4 +1,4 @@
-import { use, useState, useEffect } from "react";
+import { useState,useEffect, useRef } from "react";
 import "./App.css";
 import DrawCanvas from "./components/DrawCanvas.jsx";
 import Toolbox from "./components/Toolbox.jsx";
@@ -6,10 +6,12 @@ import ColourPicker from "./components/ColourPicker.jsx";
 import MenuBar from "./components/MenuBar.jsx";
 import NewFileDialog from "./components/NewFileDialog.jsx";
 import { SHADERS } from "./assets/shaderSources";
+import { savePixelDataToJson, downloadSaveFile, createPixelartBlob, downloadBlob } from "./utils/utils.js";
 
 function App() {
     const [currentTool, setCurrentTool] = useState("pencil");
     const [currentColour, setCurrentColour] = useState("#ffffff");
+    const [palette, setPalette] = useState([]);
 
     const [pixelartWidth, setPixelartWidth] = useState(16);
     const [pixelartHeight, setPixelartHeight] = useState(16);
@@ -21,6 +23,8 @@ function App() {
     const [isNewFileDialogOpen, setIsNewFileDialogOpen] = useState(false);
     const [shaders, setShaders] = useState([]);
     const [currentShader, setCurrentShader] = useState(null);
+
+    const imagedataRef = useRef(null);  // For getting imagedata from the DrawCanvas component for saving
 
     useEffect(() => {
         setShaders(SHADERS);
@@ -52,6 +56,10 @@ function App() {
 
     const handleSave = () => {
         console.log("Save file");
+        // const json = savePixelDataToJson(imagedataRef.current.getpixelartData(), pixelartWidth, pixelartHeight, palette, currentShader);
+        // downloadSaveFile(json);
+        const blob = createPixelartBlob(imagedataRef.current.getpixelartData(), pixelartWidth, pixelartHeight, palette, currentShader);
+        downloadBlob(blob);
         // ToDo
     };
 
@@ -145,6 +153,7 @@ function App() {
                 <ColourPicker
                     currentColour={currentColour}
                     onColourChange={setCurrentColour}
+                    onPaletteChange={setPalette}
                 />
                 <DrawCanvas
                     currentTool={currentTool}
@@ -156,6 +165,7 @@ function App() {
                     crtEnabled={crtEnabled}
                     gridEnabled={gridEnabled}
                     currentShader={currentShader}
+                    imagedataRef={imagedataRef}
                 />
             </div>
             <NewFileDialog

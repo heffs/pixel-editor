@@ -5,6 +5,7 @@ import "./ColourPicker.css";
 // Props:
 // currentColour
 // onColourChange
+// onPaletteChange
 const ColourPicker = (props) => {
     const [colour, setColour] = useState(props.currentColour);
     const [colourMode, setColourMode] = useState("rgb");
@@ -21,6 +22,11 @@ const ColourPicker = (props) => {
             setHsvValues(hsv);
         }
     }, [colour]);
+
+    // When the palette changes, send it to the parent
+    useEffect(() => {
+        props.onPaletteChange(palette);
+    }, [palette]);
 
     // Whenever the parent sends a new currentColour, update local colour too
     useEffect(() => {
